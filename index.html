@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YouTube Downloader</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+margin:0;
+}
+
+.container{
+background:#1e293b;
+padding:30px;
+border-radius:10px;
+width:430px;
+text-align:center;
+box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+
+h2{
+margin-bottom:20px;
+}
+
+input{
+width:95%;
+padding:10px;
+border:none;
+border-radius:6px;
+}
+
+button{
+margin-top:15px;
+padding:10px 20px;
+background:#ff0000;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#cc0000;
+}
+
+.thumbnail img{
+width:100%;
+margin-top:20px;
+border-radius:8px;
+}
+
+.title{
+margin-top:10px;
+font-size:16px;
+}
+
+.qualities{
+margin-top:15px;
+}
+
+.qbtn{
+display:block;
+width:100%;
+margin:6px 0;
+padding:8px;
+background:#2563eb;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+.qbtn:hover{
+background:#1d4ed8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>YouTube Video Downloader</h2>
+
+
+
+<div class="title" id="title"></div>
+
+<input id="url" placeholder="Paste YouTube Link">
+<div class="thumbnail">
+<img id="thumb" style="display:none;">
+</div>
+<br><br>
+
+<button onclick="loadVideo()">Get Video</button>
+
+<div class="qualities" id="qualities"></div>
+
+</div>
+
+<script>
+
+function getVideoId(url){
+
+let reg = /(?:youtube\.com\/.*v=|youtu\.be\/|youtube\.com\/shorts\/)([^&?/]+)/
+
+let match = url.match(reg)
+
+return match ? match[1] : null
+
+}
+
+async function loadVideo(){
+
+let url = document.getElementById("url").value
+
+let res = await fetch(`http://localhost:3000/formats?url=${url}`)
+let data = await res.json()
+
+document.getElementById("thumb").src = data.thumbnail
+document.getElementById("thumb").style.display = "block"
+
+document.getElementById("title").innerText = data.title
+
+let qdiv = document.getElementById("qualities")
+qdiv.innerHTML=""
+
+data.formats.forEach(f=>{
+
+let btn=document.createElement("button")
+btn.className="qbtn"
+
+btn.innerText = "Download " + f.quality + " (" + f.size + ")"
+
+btn.onclick=function(){
+download(url,f.code)
+}
+
+qdiv.appendChild(btn)
+
+})
+
+}
+
+function download(url,quality){
+
+window.open(`http://localhost:3000/download?url=${url}&quality=${quality}`)
+
+}
+
+</script>
+
+</body>
+</html>
