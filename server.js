@@ -20,7 +20,9 @@ app.get("/download", (req, res) => {
         'attachment; filename="video.mp4"'
     );
 
-   const ytdlp = spawn("yt-dlp", [
+const ytdlp = spawn("python3", [
+    "-m",
+    "yt_dlp",
     "-f",
     req.query.quality || "18",
     "-o",
@@ -44,7 +46,7 @@ app.get("/formats", (req, res) => {
         return res.json({ error: "No URL provided" });
     }
 
-    const ytdlp = spawn("yt-dlp", ["-J", url]);
+    const ytdlp = spawn("python3", ["-m", "yt_dlp", "-J", url]);
 
     let data = "";
     let errorData = "";
@@ -59,24 +61,23 @@ app.get("/formats", (req, res) => {
 
     ytdlp.on("close", () => {
 
-        // 🔴 If yt-dlp failed
+        // ❌ If no data → yt-dlp failed
         if (!data) {
-            console.log("yt-dlp error:", errorData);
-            return res.json({ error: "Failed to fetch video data" });
+            console.log("ERROR:", errorData);
+            return res.json({ error: "yt-dlp failed" });
         }
 
         let json;
 
         try {
             json = JSON.parse(data);
-        } catch (err) {
-            console.log("JSON parse error:", err);
-            console.log("RAW DATA:", data);
-            return res.json({ error: "Invalid JSON data" });
+        } catch (e) {
+            console.log("PARSE ERROR:", e);
+            console.log("RAW:", data);
+            return res.json({ error: "Invalid JSON" });
         }
 
-        // 🔴 Check formats exist
-        if (!json.formats) {
+        if (!json || !json.formats) {
             return res.json({ error: "No formats found" });
         }
 
@@ -115,7 +116,7 @@ app.get("/formats", (req, res) => {
         res.json({
             title: json.title,
             thumbnail: json.thumbnail,
-            formats: formats
+            formats
         });
 
     });
