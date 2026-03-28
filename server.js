@@ -27,6 +27,8 @@ const ytdlp = spawn("python3", [
     req.query.quality || "18",
     "-o",
     "-",
+    "--user-agent", "Mozilla/5.0",
+    "--geo-bypass",
     url
 ]);
 
@@ -46,8 +48,15 @@ app.get("/formats", (req, res) => {
         return res.json({ error: "No URL provided" });
     }
 
-    const ytdlp = spawn("python3", ["-m", "yt_dlp", "-J", url]);
-
+    const ytdlp = spawn("python3", [
+    "-m",
+    "yt_dlp",
+    "-J",
+    "--no-warnings",
+    "--user-agent", "Mozilla/5.0",
+    "--geo-bypass",
+    url
+]);
     let data = "";
     let errorData = "";
 
@@ -77,10 +86,11 @@ app.get("/formats", (req, res) => {
             return res.json({ error: "Invalid JSON" });
         }
 
-        if (!json || !json.formats) {
-            return res.json({ error: "No formats found" });
-        }
-
+        if (!json || !json.formats || json.formats.length === 0) {
+    console.log("FULL JSON:", json);
+    console.log("ERROR:", errorData);
+    return res.json({ error: "No formats found" });
+}
         let unique = {};
         let formats = [];
 
