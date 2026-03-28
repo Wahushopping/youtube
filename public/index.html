@@ -129,6 +129,11 @@ let url = document.getElementById("url").value
 let res = await fetch(`https://youtube-ujl4.onrender.com/formats?url=${url}`)
 let data = await res.json()
 
+if (data.error) {
+    alert(data.error)
+    return
+}
+
 document.getElementById("thumb").src = data.thumbnail
 document.getElementById("thumb").style.display = "block"
 
