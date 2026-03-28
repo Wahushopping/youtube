@@ -38,59 +38,89 @@ app.get("/download", (req, res) => {
 
 app.get("/formats", (req, res) => {
 
-const url = req.query.url
-const { spawn } = require("child_process")
+    const url = req.query.url;
 
-const ytdlp = spawn("yt-dlp", ["-J", url])
+    if (!url) {
+        return res.json({ error: "No URL provided" });
+    }
 
-let data=""
+    const ytdlp = spawn("yt-dlp", ["-J", url]);
 
-ytdlp.stdout.on("data", chunk=>{
-data += chunk
-})
+    let data = "";
+    let errorData = "";
 
-ytdlp.on("close", ()=>{
+    ytdlp.stdout.on("data", chunk => {
+        data += chunk;
+    });
 
-let json = JSON.parse(data)
+    ytdlp.stderr.on("data", chunk => {
+        errorData += chunk.toString();
+    });
 
-let unique = {}
-let formats = []
+    ytdlp.on("close", () => {
 
-json.formats.forEach(f=>{
+        // 🔴 If yt-dlp failed
+        if (!data) {
+            console.log("yt-dlp error:", errorData);
+            return res.json({ error: "Failed to fetch video data" });
+        }
 
-if(!f.height) return
+        let json;
 
-let q = f.height + "p"
+        try {
+            json = JSON.parse(data);
+        } catch (err) {
+            console.log("JSON parse error:", err);
+            console.log("RAW DATA:", data);
+            return res.json({ error: "Invalid JSON data" });
+        }
 
-if(!unique[q]){
+        // 🔴 Check formats exist
+        if (!json.formats) {
+            return res.json({ error: "No formats found" });
+        }
 
-unique[q] = true
+        let unique = {};
+        let formats = [];
 
-let size = f.filesize || f.filesize_approx || 0
+        json.formats.forEach(f => {
 
-let sizeMB = size ? (size/1024/1024).toFixed(1) + " MB" : "Unknown"
+            if (!f.height) return;
 
-formats.push({
-quality: q,
-code: f.format_id,
-size: sizeMB
-})
+            let q = f.height + "p";
 
-}
+            if (!unique[q]) {
 
-})
+                unique[q] = true;
 
-formats.sort((a,b)=>parseInt(a.quality)-parseInt(b.quality))
+                let size = f.filesize || f.filesize_approx || 0;
 
-res.json({
-title: json.title,
-thumbnail: json.thumbnail,
-formats: formats
-})
+                let sizeMB = size
+                    ? (size / 1024 / 1024).toFixed(1) + " MB"
+                    : "Unknown";
 
-})
+                formats.push({
+                    quality: q,
+                    code: f.format_id,
+                    size: sizeMB
+                });
+            }
 
-})
+        });
+
+        formats.sort((a, b) =>
+            parseInt(a.quality) - parseInt(b.quality)
+        );
+
+        res.json({
+            title: json.title,
+            thumbnail: json.thumbnail,
+            formats: formats
+        });
+
+    });
+
+});
 app.listen(3000, () => {
     console.log("Server running on port 3000");
 });
